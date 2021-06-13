@@ -1,0 +1,49 @@
+package main
+
+import (
+	"context"
+	"net/http"
+	"path/filepath"
+
+	"github.com/jackc/pgx/v4/pgxpool"
+)
+
+func openDB(dsn string) (*pgxpool.Pool, error) {
+	db, err := pgxpool.Connect(context.Background(), dsn)
+	if err != nil {
+		return nil, err
+	}
+	if err = db.Ping(context.Background()); err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
+type neuteredFileSystem struct {
+	fs http.FileSystem
+}
+
+func (nfs neuteredFileSystem) Open(path string) (http.File, error) {
+	file, err := nfs.fs.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	if s.IsDir() {
+		index := filepath.Join(path, "index.html")
+		if _, err := nfs.fs.Open(index); err != nil {
+			closeErr := file.Close()
+			if closeErr != nil {
+				return nil, closeErr
+			}
+			return nil, err
+		}
+	}
+
+	return file, nil
+}
