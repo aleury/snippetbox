@@ -8,11 +8,12 @@ import (
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
+	"snippetbox.adameury.dev/internal/models"
 )
 
 type application struct {
-	db     *sql.DB
-	logger *slog.Logger
+	logger   *slog.Logger
+	snippets *models.SnippetModel
 }
 
 func main() {
@@ -30,8 +31,8 @@ func main() {
 	defer db.Close()
 
 	app := application{
-		db:     db,
-		logger: logger,
+		logger:   logger,
+		snippets: &models.SnippetModel{DB: db},
 	}
 
 	logger.Info("starting server", "addr", *addr)
